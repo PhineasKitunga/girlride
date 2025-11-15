@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "278228907252",
+    "firebase_url": "https://girlride-1-default-rtdb.firebaseio.com",
+    "project_id": "girlride-1",
+    "storage_bucket": "girlride-1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:278228907252:android:72719cec16349c53381aa1",
+        "android_client_info": {
+          "package_name": "com.ttweb.girlride"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAyYfrw-fdBkTysN6REgyGYflNNNN2um2U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

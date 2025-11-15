@@ -1,0 +1,58 @@
+
+// Firestore security rules (example, adapt to your project)
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow only authenticated users
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow delete: if false; // disable user deletion via client
+    }
+
+    match /drivers/{driverId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == driverId;
+    }
+
+    match /rides/{rideId} {
+      allow read: if request.auth != null && (resource.data.riderId == request.auth.uid || resource.data.driverId == request.auth.uid || request.auth.token.admin == true);
+      // Writes should be done via trusted Cloud Functions (use a secure attribute)
+      allow create: if request.auth != null;
+      allow update: if false; // updates via Cloud Functions ideally
+    }
+
+    match /locations/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == docId;
+    }
+
+    match /chats/{chatId} {
+      allow read: if request.auth != null && request.resource.data.participants.hasAny([request.auth.uid]);
+      allow create: if request.auth != null;
+    }
+
+    // Fallback
+    match /{document=**} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}
+
+// Storage rules (for uploaded documents)
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /user_documents/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /public/{allPaths=**} {
+      allow read;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+    match /{allPaths=**} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}

@@ -1,0 +1,171 @@
+import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../../core/services/maps_config_service.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text_styles.dart';
+
+/// Secure Google Maps widget that fetches API key from Firestore
+class SecureGoogleMap extends StatefulWidget {
+  final CameraPosition initialPosition;
+  final bool myLocationEnabled;
+  final bool myLocationButtonEnabled;
+  final bool zoomControlsEnabled;
+  final bool compassEnabled;
+  final bool mapToolbarEnabled;
+  final MapType mapType;
+  final Set<Marker>? markers;
+  final void Function(GoogleMapController)? onMapCreated;
+
+  const SecureGoogleMap({
+    Key? key,
+    required this.initialPosition,
+    this.myLocationEnabled = true,
+    this.myLocationButtonEnabled = false,
+    this.zoomControlsEnabled = false,
+    this.compassEnabled = false,
+    this.mapToolbarEnabled = false,
+    this.mapType = MapType.normal,
+    this.markers,
+    this.onMapCreated,
+  }) : super(key: key);
+
+  @override
+  State<SecureGoogleMap> createState() => _SecureGoogleMapState();
+}
+
+class _SecureGoogleMapState extends State<SecureGoogleMap> {
+  final _mapsConfigService = MapsConfigService();
+  bool _isLoading = true;
+  bool _hasError = false;
+  String? _errorMessage;
+  String? _apiKey;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadApiKey();
+  }
+
+  @override
+  void dispose() {
+    // Clean up to prevent memory leaks
+    super.dispose();
+  }
+
+  Future<void> _loadApiKey() async {
+    try {
+      if (!mounted) return;
+      
+      setState(() {
+        _isLoading = true;
+        _hasError = false;
+      });
+
+      final apiKey = await _mapsConfigService.getApiKey();
+
+      if (!mounted) return;
+
+      if (apiKey == null || apiKey.isEmpty) {
+        throw Exception('Failed to retrieve Maps API key');
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _apiKey = apiKey;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      
+      setState(() {
+        _hasError = true;
+        _errorMessage = 'Unable to load map. Please check your connection.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return _buildLoadingView();
+    }
+
+    if (_hasError || _apiKey == null) {
+      return _buildErrorView();
+    }
+
+    // Only render map when we have a valid API key
+    return GoogleMap(
+      initialCameraPosition: widget.initialPosition,
+      mapType: widget.mapType,
+      myLocationEnabled: widget.myLocationEnabled,
+      myLocationButtonEnabled: widget.myLocationButtonEnabled,
+      zoomControlsEnabled: widget.zoomControlsEnabled,
+      compassEnabled: widget.compassEnabled,
+      mapToolbarEnabled: widget.mapToolbarEnabled,
+      markers: widget.markers ?? {},
+      onMapCreated: widget.onMapCreated,
+    );
+  }
+
+  Widget _buildLoadingView() {
+    return Container(
+      color: AppColors.paleLavender,
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              color: AppColors.royalPurple,
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Loading map...',
+              style: AppTextStyles.bodyMedium,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorView() {
+    return Container(
+      color: AppColors.paleLavender,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.map_outlined,
+              size: 80,
+              color: AppColors.lavender,
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                _errorMessage ?? 'Map unavailable',
+                style: AppTextStyles.bodyLarge.copyWith(
+                  color: AppColors.greyDark,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 24),
+            TextButton.icon(
+              onPressed: _loadApiKey,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Retry'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.royalPurple,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
