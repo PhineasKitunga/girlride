@@ -135,35 +135,61 @@ class _SecureGoogleMapState extends State<SecureGoogleMap> {
     return Container(
       color: AppColors.paleLavender,
       child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.map_outlined,
-              size: 80,
-              color: AppColors.lavender,
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Text(
-                _errorMessage ?? 'Map unavailable',
-                style: AppTextStyles.bodyLarge.copyWith(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.map_outlined,
+                size: 80,
+                color: AppColors.lavender,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Map Temporarily Unavailable',
+                style: AppTextStyles.headlineSmall.copyWith(
                   color: AppColors.greyDark,
                 ),
                 textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: 24),
-            TextButton.icon(
-              onPressed: _loadApiKey,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Retry'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.royalPurple,
+              const SizedBox(height: 8),
+              Text(
+                'Google Maps API key needs to be configured.\nThe app will work normally once the key is set up.',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.greyMedium,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.lavender),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'To enable maps:',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        color: AppColors.royalPurple,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '1. Get API key from Google Cloud Console\n2. Enable Maps JavaScript API\n3. Add key to Firestore: maps/config',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.greyDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
