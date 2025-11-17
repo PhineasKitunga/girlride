@@ -83,6 +83,23 @@ class _HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<_HomeTab> {
+  String _userName = 'User';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    final cachedData = await AuthService().getCachedUserData();
+    if (mounted) {
+      setState(() {
+        _userName = cachedData['name'] ?? 'User';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -95,12 +112,14 @@ class _HomeTabState extends State<_HomeTab> {
               padding: const EdgeInsets.all(AppConstants.spacingL),
               child: Row(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 24,
                     backgroundColor: AppColors.paleLavender,
-                    child: Icon(
-                      Icons.person_rounded,
-                      color: AppColors.royalPurple,
+                    child: Text(
+                      _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
+                      style: AppTextStyles.headlineSmall.copyWith(
+                        color: AppColors.royalPurple,
+                      ),
                     ),
                   ),
                   const SizedBox(width: AppConstants.spacingM),
@@ -109,7 +128,7 @@ class _HomeTabState extends State<_HomeTab> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Hello, Sarah!',
+                          'Hello, $_userName!',
                           style: AppTextStyles.headlineSmall,
                         ),
                         Text(

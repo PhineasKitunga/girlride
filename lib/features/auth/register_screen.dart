@@ -18,15 +18,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _agreedToTerms = false;
-  String _userType = 'rider'; // rider or driver
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -45,26 +50,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      // Extract password from email (simple demo - you should add password field)
-      final password = _emailController.text.split('@')[0] + '123456';
+      try {
+        final result = await AuthService().signUp(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          fullName: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          userType: 'rider',
+        );
 
-      final result = await AuthService().signUp(
-        email: _emailController.text.trim(),
-        password: password,
-        fullName: _nameController.text.trim(),
-        phone: _phoneController.text.trim(),
-        userType: _userType,
-      );
+        if (mounted) {
+          setState(() => _isLoading = false);
 
-      if (mounted) {
-        setState(() => _isLoading = false);
-        
-        if (result['success']) {
-          Navigator.of(context).pushReplacementNamed('/home');
-        } else {
+          if (result['success']) {
+            Navigator.of(context).pushReplacementNamed('/home');
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result['message']),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message']),
+              content: Text('Unexpected error: ${e.toString()}'),
               backgroundColor: AppColors.error,
               behavior: SnackBarBehavior.floating,
             ),
@@ -100,38 +115,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   style: AppTextStyles.bodyLarge.copyWith(
                     color: AppColors.greyDark,
                   ),
-                ),
-                const SizedBox(height: AppConstants.spacingXL),
-
-                // User type selection
-                Text('I want to', style: AppTextStyles.labelMedium),
-                const SizedBox(height: AppConstants.spacingM),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _UserTypeCard(
-                        icon: Icons.person_rounded,
-                        label: 'Get Rides',
-                        value: 'rider',
-                        groupValue: _userType,
-                        onChanged: (value) {
-                          setState(() => _userType = value!);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: AppConstants.spacingM),
-                    Expanded(
-                      child: _UserTypeCard(
-                        icon: Icons.drive_eta_rounded,
-                        label: 'Drive',
-                        value: 'driver',
-                        groupValue: _userType,
-                        onChanged: (value) {
-                          setState(() => _userType = value!);
-                        },
-                      ),
-                    ),
-                  ],
                 ),
                 const SizedBox(height: AppConstants.spacingXL),
 
@@ -186,6 +169,73 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your phone number';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: AppConstants.spacingL),
+
+                CustomTextField(
+                  label: 'Password',
+                  hint: 'Create a password',
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  prefixIcon: const Icon(
+                    Icons.lock_outline_rounded,
+                    color: AppColors.royalPurple,
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off_rounded
+                          : Icons.visibility_rounded,
+                      color: AppColors.greyDark,
+                    ),
+                    onPressed: () {
+                      setState(() => _obscurePassword = !_obscurePassword);
+                    },
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a password';
+                    }
+                    if (value.length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: AppConstants.spacingL),
+
+                CustomTextField(
+                  label: 'Confirm Password',
+                  hint: 'Re-enter your password',
+                  controller: _confirmPasswordController,
+                  obscureText: _obscureConfirmPassword,
+                  prefixIcon: const Icon(
+                    Icons.lock_outline_rounded,
+                    color: AppColors.royalPurple,
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirmPassword
+                          ? Icons.visibility_off_rounded
+                          : Icons.visibility_rounded,
+                      color: AppColors.greyDark,
+                    ),
+                    onPressed: () {
+                      setState(
+                        () =>
+                            _obscureConfirmPassword = !_obscureConfirmPassword,
+                      );
+                    },
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm your password';
+                    }
+                    if (value != _passwordController.text) {
+                      return 'Passwords do not match';
                     }
                     return null;
                   },
@@ -281,57 +331,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _UserTypeCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final String groupValue;
-  final ValueChanged<String?> onChanged;
-
-  const _UserTypeCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.groupValue,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isSelected = value == groupValue;
-    return GestureDetector(
-      onTap: () => onChanged(value),
-      child: Container(
-        padding: const EdgeInsets.all(AppConstants.spacingL),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.paleLavender : AppColors.greyLight,
-          borderRadius: BorderRadius.circular(AppConstants.radiusL),
-          border: Border.all(
-            color: isSelected ? AppColors.royalPurple : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: AppConstants.iconSizeXL,
-              color: isSelected ? AppColors.royalPurple : AppColors.greyDark,
-            ),
-            const SizedBox(height: AppConstants.spacingS),
-            Text(
-              label,
-              style: AppTextStyles.labelMedium.copyWith(
-                color: isSelected ? AppColors.royalPurple : AppColors.greyDark,
-              ),
-            ),
-          ],
         ),
       ),
     );

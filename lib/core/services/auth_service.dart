@@ -27,6 +27,9 @@ class AuthService {
     required String userType, // 'rider' or 'driver'
   }) async {
     try {
+      print('Starting signup for: $email');
+      print('Firestore instance: $_firestore');
+      
       // Create user in Firebase Auth
       final userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -34,26 +37,50 @@ class AuthService {
       );
 
       final user = userCredential.user!;
+      print('Firebase Auth user created: ${user.uid}');
+      print('User email verified: ${user.emailVerified}');
+      
+      // Get auth token to ensure authentication is complete
+      final token = await user.getIdToken();
+      print('Auth token obtained: ${token?.substring(0, 20)}...');
+      
+      // Wait a moment for auth state to propagate
+      await Future.delayed(const Duration(milliseconds: 500));
 
       // Create user profile in Firestore
-      await _firestore.collection('users').doc(user.uid).set({
-        'uid': user.uid,
-        'email': email,
-        'fullName': fullName,
-        'phone': phone,
-        'userType': userType,
-        'createdAt': FieldValue.serverTimestamp(),
-        'profileImageUrl': '',
-        'rating': 5.0,
-        'totalRides': 0,
-        'isVerified': false,
-      });
+      print('Creating Firestore document for user: ${user.uid}');
+      try {
+        await _firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'email': email,
+          'fullName': fullName,
+          'phone': phone,
+          'userType': userType,
+          'createdAt': FieldValue.serverTimestamp(),
+          'profileImageUrl': '',
+          'rating': 5.0,
+          'totalRides': 0,
+          'isVerified': false,
+        }).timeout(
+          const Duration(seconds: 15),
+          onTimeout: () {
+            throw Exception('Firestore operation timed out after 15 seconds. Check your internet connection and Firestore rules.');
+          },
+        );
+        print('Firestore document created successfully');
+      } catch (firestoreError) {
+        print('Firestore error details: $firestoreError');
+        print('Error type: ${firestoreError.runtimeType}');
+        rethrow;
+      }
 
       // Update display name
       await user.updateDisplayName(fullName);
+      print('Display name updated');
 
       // Cache user data locally
       await _cacheUserData(user.uid, fullName, email, phone, userType);
+      print('User data cached locally');
 
       return {
         'success': true,
@@ -61,14 +88,16 @@ class AuthService {
         'user': user,
       };
     } on FirebaseAuthException catch (e) {
+      print('FirebaseAuthException: ${e.code} - ${e.message}');
       return {
         'success': false,
         'message': _getAuthErrorMessage(e.code),
       };
     } catch (e) {
+      print('Error during signup: $e');
       return {
         'success': false,
-        'message': 'An error occurred. Please try again.',
+        'message': 'An error occurred: ${e.toString()}',
       };
     }
   }
