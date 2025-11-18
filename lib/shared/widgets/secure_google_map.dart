@@ -80,7 +80,6 @@ class _SecureGoogleMapState extends State<SecureGoogleMap> {
       
       setState(() {
         _hasError = true;
-        _errorMessage = 'Unable to load map. Please check your connection.';
         _isLoading = false;
       });
     }
@@ -97,16 +96,23 @@ class _SecureGoogleMapState extends State<SecureGoogleMap> {
     }
 
     // Only render map when we have a valid API key
-    return GoogleMap(
-      initialCameraPosition: widget.initialPosition,
-      mapType: widget.mapType,
-      myLocationEnabled: widget.myLocationEnabled,
-      myLocationButtonEnabled: widget.myLocationButtonEnabled,
-      zoomControlsEnabled: widget.zoomControlsEnabled,
-      compassEnabled: widget.compassEnabled,
-      mapToolbarEnabled: widget.mapToolbarEnabled,
-      markers: widget.markers ?? {},
-      onMapCreated: widget.onMapCreated,
+    // Wrap in error boundary to catch runtime map errors
+    return Container(
+      child: GoogleMap(
+        initialCameraPosition: widget.initialPosition,
+        mapType: widget.mapType,
+        myLocationEnabled: widget.myLocationEnabled,
+        myLocationButtonEnabled: widget.myLocationButtonEnabled,
+        zoomControlsEnabled: widget.zoomControlsEnabled,
+        compassEnabled: widget.compassEnabled,
+        mapToolbarEnabled: widget.mapToolbarEnabled,
+        markers: widget.markers ?? {},
+        onMapCreated: (controller) {
+          if (widget.onMapCreated != null) {
+            widget.onMapCreated!(controller);
+          }
+        },
+      ),
     );
   }
 

@@ -69,9 +69,16 @@ class MapsConfigService {
               
               if (kDebugMode) {
                 print('✅ Maps API key loaded from Firestore');
+                print('🔑 Key starts with: ${apiKey.substring(0, 10)}...');
+                print('📱 Platform: $fieldName');
               }
               
               return apiKey;
+            } else {
+              if (kDebugMode) {
+                print('❌ Invalid API key format from Firestore');
+                print('🔑 Key value: ${apiKey?.substring(0, apiKey.length > 20 ? 20 : apiKey.length)}...');
+              }
             }
           }
         }
